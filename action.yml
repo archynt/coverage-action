@@ -1,0 +1,46 @@
+name: 'Archynt Coverage Upload'
+description: 'Upload your test coverage report (JaCoCo, Cobertura/coverage.py, lcov or Go coverprofile) to Archynt.'
+author: 'Archynt'
+
+branding:
+  icon: 'upload-cloud'
+  color: 'purple'
+
+inputs:
+  token:
+    description: 'The project upload token from the Archynt dashboard (store it as a secret)'
+    required: true
+  file:
+    description: 'Path to the coverage report, e.g. target/site/jacoco/jacoco.xml, coverage/lcov.info, coverage.xml, coverage.out'
+    required: true
+  api-base-url:
+    description: 'Archynt API base URL (override only for self-hosted/staging use)'
+    required: false
+    default: 'https://api.archynt.com'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Upload coverage to Archynt
+      shell: bash
+      env:
+        ARCHYNT_TOKEN: ${{ inputs.token }}
+        REPORT_FILE: ${{ inputs.file }}
+        API_BASE_URL: ${{ inputs.api-base-url }}
+        BRANCH: ${{ github.head_ref || github.ref_name }}
+        COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      run: |
+        if [ ! -f "$REPORT_FILE" ]; then
+          echo "::error::Coverage report not found: $REPORT_FILE"
+          exit 1
+        fi
+        gzip -c "$REPORT_FILE" | curl -sS --fail-with-body -X POST \
+          "$API_BASE_URL/api/v1/coverage/upload" \
+          --url-query "branch=$BRANCH" \
+          --url-query "commit=$COMMIT" \
+          --url-query "defaultBranch=$DEFAULT_BRANCH" \
+          -H "Authorization: Bearer $ARCHYNT_TOKEN" \
+          -H "Content-Type: application/octet-stream" \
+          --data-binary @-
+        echo
