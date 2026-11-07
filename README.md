@@ -15,8 +15,7 @@ Archynt never runs your tests: your CI does, and this step sends the resulting r
 name: Coverage
 on:
   push:
-    branches: [main]   # the branch the Archynt project follows; feeds the dashboard
-  pull_request:
+    branches: [main]   # the branch the Archynt project follows
 
 jobs:
   coverage:
@@ -43,9 +42,10 @@ missing from the report instead of showing 0%.
 
 ## How it works
 
-The step gzips the report and posts it with the branch, the commit and the repository's default
-branch. Archynt keeps the latest report per branch: the project's branch is what the dashboard
-shows; reports from pull request branches are stored separately and never replace it.
+The step gzips the report and posts it with the branch and the commit. Archynt keeps only the
+report of the project's branch: the one set when the project was created or, if none, the
+repository's default branch detected when Archynt analyzes it. Uploads from any other branch are
+answered with 200 and discarded, so the step never fails because of the branch it runs on.
 
 ## Other CI
 
